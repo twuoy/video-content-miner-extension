@@ -11,19 +11,21 @@
       "256": "images/icon256.png"
     }
   },
+  "host_permissions": ["https://*.youtube.com/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches":["https://www.youtube.com/watch?v=*"],
+      "matches":["https://*.youtube.com/*"],
       "js": ["content.js"]
     }
   ],
   "permissions": [
     "activeTab",
     "declarativeContent",
+    "storage",
     "tabs"
   ],
   "icons": {

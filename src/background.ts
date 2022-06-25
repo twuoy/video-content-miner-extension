@@ -21,6 +21,10 @@ try {
     });
   });
 
+  chrome.runtime.onStartup.addListener(function() {
+    chrome.storage.sync.clear();
+  });
+
 } catch (e) {
   console.error(`backgroung page exception: ${e}`);
 }
