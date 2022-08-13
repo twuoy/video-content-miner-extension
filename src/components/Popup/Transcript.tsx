@@ -29,7 +29,7 @@ const Transcript: FC<TranscriptProps> = (props) => {
       <Timeline color="cyan" radius="md" active={selectedTimeIndex}>
         {
           transcript.map((lineInfo, index) => (
-            <Timeline.Item title={`${Math.floor(lineInfo.start)}s`}>
+            <Timeline.Item key={index} title={`${Math.floor(lineInfo.start)}s`}>
               <TranscriptLine key={index} timeLineIndex={index} lineInfo={lineInfo} updateVideoTime={updateVideoTime}/>
               <Divider size="sm"></Divider>
             </Timeline.Item>
