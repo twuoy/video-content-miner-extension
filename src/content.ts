@@ -1,11 +1,11 @@
 import * as contansts from './contanst';
 import * as types from './type';
 
-chrome.runtime.onMessage.addListener(async (request: types.MessageAction, sender) => {
-  const { action } = request;
+chrome.runtime.onMessage.addListener((message: types.MessageAction) => {
+  const { action } = message;
 
   if (action === contansts.MessageAction.SetVideoTimestamp) {
-    document.getElementsByTagName('video')[0].currentTime = request.payload.startTimeSec;
+    document.getElementsByTagName('video')[0].currentTime = message.payload.startTimeSec;
   }
 });
 

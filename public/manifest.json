@@ -11,14 +11,14 @@
       "256": "images/icon256.png"
     }
   },
-  "host_permissions": ["https://*.youtube.com/*"],
+  "host_permissions": ["https://*.youtube.com/watch*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches":["https://*.youtube.com/*"],
+      "matches":["https://*.youtube.com/watch*"],
       "js": ["content.js"]
     }
   ],
