@@ -1,5 +1,6 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useEffect, useRef, useState, MutableRefObject } from 'react';
 import { Box, Title, Space } from '@mantine/core';
+import * as contansts from '../../contanst';
 import * as types from '../../type';
 import Transcript from './Transcript';
 import MiningForm from './MiningForm';
@@ -8,17 +9,48 @@ interface PopupPageProps {
 }
 
 const PopupPage: FC<PopupPageProps> = () => {
-  const [{ transcript, tabInfo }, setTranscriptInfo] = useState<types.TranscriptInfo>(
-    { transcript: [], tabInfo: { id: undefined, url: '' }}
+  const [{ matchedTranscriptLine, tabInfo }, setTranscriptInfo] = useState<types.TranscriptInfo>(
+    { matchedTranscriptLine: [], tabInfo: { id: undefined, url: '' }}
   );
 
+  let tabID = useRef(-1);
+  let videoURL = useRef('');
+  let transcript: MutableRefObject<types.TranscriptLineInfo[]> = useRef([]);
+
+  // get transcript of current video when popup clicked
+  useEffect(() => {
+    const handShakeMessage = {
+      action: contansts.MessageAction.PopupToBGHandshake,
+      payload: {},
+    };
+
+    chrome.runtime.sendMessage(handShakeMessage, async (response: types.SendTabInfoAction) => {
+      console.log(`handshake response: ${JSON.stringify(response)}`);
+
+      const { tabID: tabIDFromMsg, tabURL } = response.payload;
+      tabID.current = tabIDFromMsg;
+      videoURL.current = tabURL;
+
+      const videoID = getVideoID(videoURL.current);
+      if (videoID == null) {
+        transcript.current = [];
+        return;
+      }
+
+      const transcriptInStorage = await getTranscriptFromStorage(videoID);
+      if (transcriptInStorage) {
+        console.log('get transcript from storage!');
+        transcript.current = transcriptInStorage;
+        return;
+      }
+
+      const transcriptFromServer = await fetchTranscript(videoURL.current);
+      chrome.storage.sync.set({[videoID]: JSON.stringify(transcriptFromServer)});
+      transcript.current = transcriptFromServer;
+    });
+  }, []);
+
   const fetchTranscript = async (videoURL: string): Promise<types.TranscriptLineInfo[]> => {
-    const videoID = getVideoID(videoURL);
-    if (videoID == null) return [];
-
-    const transcriptInStorage = await getTranscriptFromStorage(videoID);
-    if (transcriptInStorage) return transcriptInStorage;
-
     const endpoint = `${process.env.API_URL}/transcript`;
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -31,7 +63,6 @@ const PopupPage: FC<PopupPageProps> = () => {
     });
 
     const transcript: types.TranscriptLineInfo[] = await response.json();
-    chrome.storage.sync.set({[videoID]: JSON.stringify(transcript)});
     return transcript;
   }
 
@@ -54,25 +85,12 @@ const PopupPage: FC<PopupPageProps> = () => {
     return videoID;
   };
 
-  const getCurrentTab = (): Promise<chrome.tabs.Tab> => {
-    return new Promise(function(resolve, reject) {
-      chrome.tabs.query(
-        { active: true, currentWindow: true },
-        (tabs) => { resolve(tabs[0]) }
-      )
-    });
-  }
-
   const notifyFetchTranscript = async (keyword: string) => {
-    const { id: tabID, url: videoURL } = await getCurrentTab();
-    if (!videoURL || !tabID) throw new Error('Can not get url and id of current tab.');
+    console.info(`notify to fetch transcript of video: ${videoURL.current}`);
+    const matchedLines = transcript.current.filter((lineInfo) => lineInfo.text.includes(keyword));
+    const VideoURLWithoutTimeQuery = videoURL.current.replace(/&t=(\d+)s/g, '');
 
-    console.info(`notify to fetch transcript of video: ${videoURL}`);
-    const transcript = await fetchTranscript(videoURL);
-    const matchedLines = transcript.filter((lineInfo) => lineInfo.text.includes(keyword));
-    const VideoURLWithoutTimeQuery = videoURL.replace(/&t=(\d+)s/g, '');
-
-    setTranscriptInfo({transcript: matchedLines, tabInfo: { url: VideoURLWithoutTimeQuery, id: tabID }});
+    setTranscriptInfo({matchedTranscriptLine: matchedLines, tabInfo: { url: VideoURLWithoutTimeQuery, id: tabID.current }});
   };
 
   return (
@@ -82,10 +100,10 @@ const PopupPage: FC<PopupPageProps> = () => {
       <MiningForm notifyFetchTranscript={notifyFetchTranscript} />
       <Space h="md" />
       {
-        transcript.length !== 0 && 
+        matchedTranscriptLine.length !== 0 && 
           <>
             <hr className="rounded"></hr>
-            <Transcript transcript={transcript} tabInfo={tabInfo} />
+            <Transcript transcriptLines={matchedTranscriptLine} tabInfo={tabInfo} />
           </>
       }
     </Box>
