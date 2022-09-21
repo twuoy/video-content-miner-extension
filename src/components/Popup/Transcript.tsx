@@ -4,12 +4,12 @@ import * as types from '../../type';
 import TranscriptLine from './TranscriptLine';
 
 interface TranscriptProps {
-  transcript: types.TranscriptLineInfo[];
+  transcriptLines: types.TranscriptLineInfo[];
   tabInfo: types.TabInfo;
 }
 
 const Transcript: FC<TranscriptProps> = (props) => {
-  const { transcript, tabInfo } = props;
+  const { transcriptLines, tabInfo } = props;
   const [selectedTimeIndex, setSelectedTimeIndex] = useState(0);
 
   const updateVideoTime = (lineInfo: types.TranscriptLineInfo, selectedTimeIndex: number) => {
@@ -28,7 +28,7 @@ const Transcript: FC<TranscriptProps> = (props) => {
     <div>
       <Timeline color="cyan" radius="md" active={selectedTimeIndex}>
         {
-          transcript.map((lineInfo, index) => (
+          transcriptLines.map((lineInfo, index) => (
             <Timeline.Item key={index} title={`${Math.floor(lineInfo.start)}s`}>
               <TranscriptLine key={index} timeLineIndex={index} lineInfo={lineInfo} updateVideoTime={updateVideoTime}/>
               <Divider size="sm"></Divider>
